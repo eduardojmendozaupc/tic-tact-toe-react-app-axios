@@ -4,32 +4,34 @@ import WinnersBoard from "../components/WinnersBoard";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Container, Nav, Navbar } from "react-bootstrap";
+import { signOut } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
+
+import { auth } from "../config/firebase.config";
 
 export default function Game() {
   const [history, setHistory] = useState([{ squares: Array(9).fill(null), coordinates: { row: null, col: null } }]);
   const [currentMove, setCurrentMove] = useState(0);
   const [orden, setOrden] = useState("ascendente");
   const [winners, setWinners] = useState([]);
+  const [authUser, setAuthUser] = useState(null);
   const navigate = useNavigate();
 
   const xIsNext = currentMove % 2 === 0;
   const currentSquares = history[currentMove].squares;
 
   useEffect(() => {
-    const t = localStorage.getItem("jwt-token");
-    if (!t) {
-      navigate("/login");
-    } else {
-      const getWinners = async () => {
-        const response = await axios.get("http://localhost:3000/api/v1/winners", {
-          headers: {
-            Authorization: `Bearer ${t}`,
-          },
-        });
-        setWinners(response.data.data);
-      };
-      getWinners();
-    }
+    const listen = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        setAuthUser(null);
+        navigate("/login");
+      } else {
+        setAuthUser(user);
+      }
+    });
+    return () => {
+      listen();
+    };
   }, [navigate]);
 
   const handleWinner = async (w) => {
@@ -37,13 +39,7 @@ export default function Game() {
       name: w,
     };
     try {
-      const t = localStorage.getItem("jwt-token");
-      const current_winner = await axios.post("http://localhost:3000/api/v1/winners", winner, {
-        headers: {
-          Authorization: `Bearer ${t}`,
-        },
-      });
-      setWinners([...winners, current_winner.data.data]);
+      // setWinners([...winners, current_winner.data.data]);
     } catch (error) {
       console.log(error);
     }
@@ -64,9 +60,13 @@ export default function Game() {
     setCurrentMove(nextHistory.length - 1);
   }
 
-  function handleLogout() {
-    localStorage.clear();
-    navigate("/login");
+  async function handleLogout() {
+    try {
+      await signOut(auth);
+      navigate("/login");
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   function jumpTo(nextMove) {

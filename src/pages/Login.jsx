@@ -1,26 +1,23 @@
-import axios from "axios";
 import { useState } from "react";
 import { Col, Form, Row } from "react-bootstrap";
 import Button from "react-bootstrap/Button";
 import { useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../config/firebase.config";
 
 export default function Login() {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    let credentials = { username, password };
     try {
-      const res = await axios.post("http://localhost:3000/api/v1/auth/signin", credentials);
-      const token = res.data.data.token;
-      localStorage.setItem("jwt-token", token);
-      console.log(localStorage.getItem("jwt-token"));
+      await signInWithEmailAndPassword(auth, email, password);
       navigate("/");
     } catch (error) {
-      toast.error("Falló: " + error.message);
+      console.log(error);
     }
   };
 
@@ -32,7 +29,7 @@ export default function Login() {
           <Form onSubmit={handleSubmit}>
             <Form.Group className="mb-3" controlId="formBasicEmail">
               <Form.Label>Usuario</Form.Label>
-              <Form.Control value={username} type="username" placeholder="Usuario" onChange={(e) => setUsername(e.target.value)} />
+              <Form.Control value={email} type="email" placeholder="Email" onChange={(e) => setEmail(e.target.value)} />
             </Form.Group>
 
             <Form.Group className="mb-3" controlId="formBasicPassword">
